@@ -1,0 +1,73 @@
+version: '3.8'
+
+volumes:
+  phpmyadmin_data:
+
+
+#networks:
+#  default:
+#    name: comedores-network
+
+
+services:
+
+  modelo_simulacion_app:
+    container_name: modelo_simulacion_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/var/www/html
+    ports:
+      - 9300:80
+    # networks:
+      # - default
+    
+
+  modelo_simulacion_db:
+    container_name: modelo_simulacion_db
+    platform: linux/x86_64
+    image: mysql:8.0
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: 'modelo_simulacion'
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+      MYSQL_ROOT_USER: 'root'
+      MYSQL_ROOT_PASSWORD: 'rootpass'
+    volumes:
+      - ./storage/dbdata:/var/lib/mysql
+      # - ./modelo_simulacion.sql:/docker-entrypoint-initdb.d/dump.sql
+    ports:
+      - "3333:3306"
+    # networks:
+      # - comedores-network
+
+
+  modelo_simulacion_composer:
+    container_name: modelo_simulacion_composer
+    image: composer:2.5.4
+    volumes:
+      - .:/app
+    working_dir: /app
+    entrypoint: ["composer", "--ignore-platform-reqs"]
+
+
+  modelo_simulacion_pma:
+    container_name: modelo_simulacion_pma
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - modelo_simulacion_db
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=modelo_simulacion_db
+    restart: always
+    ports:
+      - "9333:80"
+    volumes:
+      - phpmyadmin_data:/var/www/html/
+    # networks:
+      # - comedores-network
+
+
+
